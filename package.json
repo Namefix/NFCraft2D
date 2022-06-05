@@ -1,0 +1,15 @@
+{
+  "name": "nfcraft2dmultiplayer",
+  "version": "1.0.0",
+  "description": "Multiplayer port of NFCraft 2D",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Namefix",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.4.1"
+  }
+}
