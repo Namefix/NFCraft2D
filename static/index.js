@@ -320,6 +320,8 @@ function generateTerrain(options={startX: 0,startY: 0,clearBefore: false,length:
 }
 
 function Inventory() {
+	playerItem = textures[playerItemWheel]?.[0] ?? null;
+
 	let invSlots = document.querySelectorAll(".invSlot");
 	let invImageRaw = document.querySelectorAll(".invSlot img");
 
@@ -350,7 +352,6 @@ addEventListener("keydown", (e) => {
 
 	if(e.code.startsWith("Digit") && !e.code.endsWith("0")) {
 		playerItemWheel = parseInt(e.code.substring(5,6))-1;
-		playerItem = textures[playerItemWheel][0];
 		Inventory();
 	}
 });
@@ -398,15 +399,21 @@ socket.on("client.place", (x,y,block) => {
 
 canvas.addEventListener("wheel", (e) => {
 	if(e.wheelDelta > 0) { // UPPER WHEEL
+		if(playerItemWheel == 0) {
+			playerItemWheel = 9;
+			Inventory();
+		}
 		if(playerItemWheel > 0) {
 			playerItemWheel--;
-			playerItem = textures[playerItemWheel][0];
 			Inventory();
 		}
 	} else {
+		if(playerItemWheel == 8) {
+			playerItemWheel = -1;
+			Inventory();
+		}
 		if(playerItemWheel < 8) {
 			playerItemWheel++;
-			playerItem = textures[playerItemWheel]?.[0] ? textures[playerItemWheel][0] : null;
 			Inventory();
 		}
 	}
