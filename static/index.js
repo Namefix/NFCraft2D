@@ -58,7 +58,7 @@ let playerInventory = [
 	[4, 1],
 	[5, 1],
 	[6, 1],
-	[-1, 0],
+	[0, 1],
 	[-1, 0]
 ];
 let playerItemWheel = 0;
@@ -320,7 +320,8 @@ function generateTerrain(options={startX: 0,startY: 0,clearBefore: false,length:
 }
 
 function Inventory() {
-	playerItem = textures[playerItemWheel]?.[0] ?? null;
+	let currentTexture = playerInventory[playerItemWheel]?.[0] ?? playerItemWheel; // Current block that have been chosen
+	playerItem = textures[currentTexture]?.[0] ?? null;
 
 	let invSlots = document.querySelectorAll(".invSlot");
 	let invImageRaw = document.querySelectorAll(".invSlot img");
@@ -370,7 +371,7 @@ canvas.addEventListener("mousedown", (e) => {
 			tilemap.grid[blockX][blockY] = 0;
 		}
 		socket.emit("client.break", blockX, blockY);
-	} else if(e.button == 2 || e.button == 1) {
+	} else if(e.button == 2 || e.button == 1) { // Right click(sphilip)
 		let blockX = Math.floor((e.clientX-tilemap.scrollX)/tilemap.gridWidth);
 		let blockY = Math.floor((e.clientY-tilemap.scrollY)/tilemap.gridHeight);
 
@@ -378,9 +379,10 @@ canvas.addEventListener("mousedown", (e) => {
 			if(playerItem != null) {
 				tilemap.grid[blockX] ??= [];
 				tilemap.grid[blockX][blockY] = {type: playerItem};
+				socket.emit("client.place", blockX, blockY, playerItem);
 			}
 		}
-		socket.emit("client.place", blockX, blockY, playerItem);
+		
 	}
 });
 
