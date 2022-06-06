@@ -5,34 +5,10 @@ let keys = {};
 let socket = io();
 let clients = [];
 
-const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
-function encryptArray(array) {
-	for(let x in array) {
-		array[x] = Object.assign({}, array[x]);
-	}
-	return Object.assign({}, array);
-}
-function decryptArray(object) {
-	let array = [];
-	Object.entries(object).forEach(item => {
-		let childarray = [];
-		Object.entries(item[1]).forEach(itemy => {
-			childarray[itemy[0]] = itemy[1];
-		});
-		array[item[0]] = childarray;
-	});
-	return array;
-}
-
-function getRandomInt(min, max) {
-	min = Math.ceil(min);
-	max = Math.floor(max);
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomBool() {
-	return Boolean(getRandomInt(0,1));
-}
+let textures = [];
+Object.entries(Blocks).forEach(block => {
+	textures.push([block[1].name, block[1].texture, block[1].tick]);
+});
 
 let tilemap = new NFTiles(canvas, {
 	gridWidth:32,
@@ -40,12 +16,6 @@ let tilemap = new NFTiles(canvas, {
 	background:"rgb(150,150,255)",
 	renderDistance: 420
 });
-
-function loadImage(w,h,url) {
-	let image = new Image(w,h);
-	image.src = url;
-	return image;
-}
 
 let playerTextureL = loadImage(32,32,"image/steveleft.png");
 let playerTextureR = loadImage(32,32,"image/steveright.png");
@@ -58,20 +28,11 @@ let playerInventory = [
 	[4, 1],
 	[5, 1],
 	[6, 1],
-	[0, 1],
+	[7, 1],
 	[-1, 0]
 ];
 let playerItemWheel = 0;
 
-let textures = [
-	["Grass Block","image/grassblock.png"],
-	["Stone","image/stone.png"],
-	["Dirt","image/dirt.png"],
-	["Oak Log","image/oaklog.png"],
-	["Oak Planks","image/oakplanks.png"],
-	["Bricks","image/bricks.png"],
-	["Glass","image/glass.png"]
-]
 textures.forEach(texture => {
 	let image = loadImage(tilemap.gridWidth, tilemap.gridHeight, texture[1]);
 	texture.push(image);
@@ -79,7 +40,7 @@ textures.forEach(texture => {
 
 let types = [];
 textures.forEach(texture => {
-	types.push({name:texture[0],draw(ctx,xaxis,yaxis) {ctx.drawImage(texture[2], xaxis, yaxis, tilemap.gridWidth, tilemap.gridHeight)}})
+	types.push({name:texture[0],data:{tick:texture[2] ?? null},draw(ctx,xaxis,yaxis) {ctx.drawImage(texture[3], xaxis, yaxis, tilemap.gridWidth, tilemap.gridHeight)}})
 })
 
 tilemap.updateTypes(types);
@@ -251,11 +212,29 @@ function controls() {
 	}
 }
 
+function BlockData() {
+	for (let x in tilemap.grid) {
+		if(tilemap.grid[x] == undefined) continue;
+		for (let y in tilemap.grid[x]) {
+			if(tilemap.grid[x][y] == 0) continue;
+			if(tilemap.grid[x][y] == undefined) continue;
+			if(tilemap.optimize) if(Math.hypot(tilemap.getRealX(x)-player.x,tilemap.getRealY(y)-player.y) > tilemap.renderDistance) continue;
+
+			let block = tilemap.grid[x][y];
+
+			let blocktype = textures.find(texture => texture[0] === block.type);
+			if(!blocktype) return;
+			if(blocktype[2]) blocktype[2](tilemap, socket, x, y, block.data);
+		}
+	}
+}
+
 function Think() {
 	tilemap.scrollCenter(player.x, player.y);
 	tilemap.draw();
 	player.collision();
 	player.draw();
+	BlockData();
 
 	controls();
 	requestAnimationFrame(Think);
@@ -289,9 +268,9 @@ function generateTerrain(options={startX: 0,startY: 0,clearBefore: false,length:
 		tilemap.grid[genX][genY] = {type:"Grass Block"};
 		for(let h=0;h<options.height;h++){
 			if(h==0 || h==1) {
-				tilemap.grid[genX][genY+(h+1)] = {type:"Dirt"};
+				//tilemap.grid[genX][genY+(h+1)] = {type:"Dirt"};
 			} else {
-				tilemap.grid[genX][genY+(h+1)] = {type:"Stone"};
+				//tilemap.grid[genX][genY+(h+1)] = {type:"Stone"};
 			}
 		}
 	}

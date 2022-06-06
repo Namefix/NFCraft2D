@@ -60,6 +60,12 @@ io.on("connection", async (socket) => {
 		if(grid[x][y] == 0) return;
 		grid[x][y] = {type: block};
 		socket.broadcast.emit("client.place", x,y,block);
+	});
+
+	socket.on("client.blockupdate", (x,y,block) => {
+		if(grid[x] === undefined) grid[x] = [];
+		grid[x][y] = {type: block};
+		socket.broadcast.emit("client.place", x,y,block);
 	})
 
 	socket.on("disconnect", (reason) => {
