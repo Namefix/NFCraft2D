@@ -2,36 +2,35 @@ let canvas = document.querySelector("#tileMap");
 let ctx = canvas.getContext("2d");
 let keys = {};
 
+MAXIMUM_SLOT = 64;
+
 let socket = io();
 let clients = [];
 
 let textures = [];
 Object.entries(Blocks).forEach(block => {
-	textures.push([block[1].name, block[1].texture, block[1].tick]);
+	textures.push([block[1].name, block[1].texture, block[1].bakedData,block[1].tick, block[1].click]);
 });
 
 let tilemap = new NFTiles(canvas, {
 	gridWidth:32,
 	gridHeight:32,
 	background:"rgb(150,150,255)",
-	renderDistance: 420
+	renderDistance: 420 // :)
 });
 
 let playerTextureL = loadImage(32,32,"image/steveleft.png");
 let playerTextureR = loadImage(32,32,"image/steveright.png");
 let playerItem = "Grass Block";
-let playerInventory = [
-	[0, 1],
-	[1, 1],
-	[2, 1],
-	[3, 1],
-	[4, 1],
-	[5, 1],
-	[6, 1],
-	[7, 1],
-	[-1, 0]
-];
+let inventoryStatus = false;
+let playerInventory = [];
+for(let i=0;i<36;i++) {
+	playerInventory[i] = [-1, 0];
+}
+playerInventory[0] = [0, 1];
 let playerItemWheel = 0;
+let mouseItem = "";
+let mouseItemCount = 0;
 
 textures.forEach(texture => {
 	let image = loadImage(tilemap.gridWidth, tilemap.gridHeight, texture[1]);
@@ -40,7 +39,7 @@ textures.forEach(texture => {
 
 let types = [];
 textures.forEach(texture => {
-	types.push({name:texture[0],data:{tick:texture[2] ?? null},draw(ctx,xaxis,yaxis) {ctx.drawImage(texture[3], xaxis, yaxis, tilemap.gridWidth, tilemap.gridHeight)}})
+	types.push({name:texture[0],bakedData:texture[2],data:{tick:texture[3] ?? null,click:texture[4] ?? null},draw(ctx,xaxis,yaxis) {ctx.drawImage(texture[5], xaxis, yaxis, tilemap.gridWidth, tilemap.gridHeight)}})
 })
 
 tilemap.updateTypes(types);
@@ -82,6 +81,9 @@ class Player {
 				if(tilemap.grid[x][y] == 0) continue;
 				if(tilemap.grid[x][y] == undefined) continue;
 
+				let blockType = getTypeFromBlockName(types, tilemap.grid[x][y].type);
+				if(blockType?.bakedData?.nocollision) continue;
+
 				if(tilemap.optimize) if(Math.hypot(tilemap.getRealX(x)-player.x,tilemap.getRealY(y)-player.y) > tilemap.renderDistance) continue;
 				
 				let realx= tilemap.getRealX(x);
@@ -93,7 +95,7 @@ class Player {
 					this.velocity.y = 0;
 				} 
 
-				if(this.y+this.h/2>=realy && this.y<=realy+tilemap.gridHeight/2) { // y collision
+				if(this.y+this.h-0.1>=realy && this.y<=realy+tilemap.gridHeight-0.1) { // y collision
 					if(this.x-this.velocity.x > realx && this.x+this.velocity.x < realx+tilemap.gridWidth) { // LEFT COLLISION
 						this.leftcol = true;
 						touchedleft = true;
@@ -136,7 +138,7 @@ class Client {
 	}
 }
 
-let player = new Player(0,-640,32,32);
+let player = new Player(0,-680,32,32);
 
 // SOCKET
 socket.on("client.join", (id, name) => {
@@ -152,7 +154,6 @@ socket.on("client.disconnect", (id, name) => {
 	});
 	let playerExcluded = tilemap.tobjects.slice(1, tilemap.tobjects.length);
 	playerExcluded.forEach((client, index) => {
-		console.log(index, cindex)
 		if(index !== cindex) return;
 		tilemap.tobjects.splice(index+1, 1);
 	});
@@ -169,22 +170,6 @@ socket.on("client.list", (clientlist, grid) => {
 	}
 });
 
-socket.on("client.generate", () => {
-	generateTerrain({
-		startX: -50,
-		startY: 0,
-		clearBefore: true,
-		length: 100,
-		height: 15,
-		maxHeight: 20,
-		minHeight: -20,
-		upProbility: 5,
-		downProbility: 95,
-	})
-	let encryptedTerrain = encryptArray(tilemap.grid);
-	socket.emit("client.generate", encryptedTerrain);
-})
-
 socket.on("client.position", (id,x,y,velocity) => {
 	let foundClient = null;
 	clients.forEach((client) => {
@@ -199,6 +184,12 @@ socket.on("client.position", (id,x,y,velocity) => {
 
 function controls() {
 	socket.emit("client.position", player.x, player.y, player.velocity);
+
+	if(mouseItem == "") mouseSlot.classList.add("empty");
+	else {
+		mouseSlot.setAttribute("src", mouseItem);
+		mouseSlot.classList.remove("empty");
+	}
 
 	if(keys["KeyA"]) {
 		player.velocity.x -= 0.1;
@@ -222,9 +213,9 @@ function BlockData() {
 
 			let block = tilemap.grid[x][y];
 
-			let blocktype = textures.find(texture => texture[0] === block.type);
+			let blocktype = types.find(texture => texture.name === block.type);
 			if(!blocktype) return;
-			if(blocktype[2]) blocktype[2](tilemap, socket, x, y, block.data);
+			if(blocktype.data.tick) blocktype.data.tick(tilemap, socket, x, y, block.data);
 		}
 	}
 }
@@ -237,87 +228,43 @@ function Think() {
 	BlockData();
 
 	controls();
+	fpsLoop();
 	requestAnimationFrame(Think);
 }
 
 requestAnimationFrame(Think);
 
-function generateTerrain(options={startX: 0,startY: 0,clearBefore: false,length: 20,height: 7,maxHeight: 20,minHeight: -20,upProbility:15, downProbility:95}) {
-	let genX = options.startX ?? 0;
-	let genY = options.startY ?? 0;
-	options.clearBefore ??= false;
-	options.length ??= 20;
-	options.height ??= 7;
-	options.maxHeight ??= 20;
-	options.minHeight ??= -20;
-	options.upProbility ??= 10;
-	options.downProbility ??= 90;
-
-	if(options.clearBefore) {
-		tilemap.grid = [];
-		for(let x=0;x<tilemap.gridX;x++) {
-			tilemap.grid[x] = [];
-			for(let y=0;y<tilemap.gridY;y++) {
-				tilemap.grid[x].push([0]);      
-			}
-		}
-	}
-	function place() {
-		
-		if(!tilemap.grid[genX]) tilemap.grid[genX] = [];
-		tilemap.grid[genX][genY] = {type:"Grass Block"};
-		for(let h=0;h<options.height;h++){
-			if(h==0 || h==1) {
-				//tilemap.grid[genX][genY+(h+1)] = {type:"Dirt"};
-			} else {
-				//tilemap.grid[genX][genY+(h+1)] = {type:"Stone"};
-			}
-		}
-	}
-
-	for(let i=0;i<options.length;i++) {
-		place();
-		let height = getRandomInt(0, 100);
-		if(height <= options.upProbility) { 
-			genX++;
-			if(height<options.maxHeight) {
-				genY--;
-			}
-			place();
-		} else if(height>options.upProbility && height<options.downProbility) {
-			genX++;
-			place();
-		} else if(height>=options.downProbility) {
-			genX++;
-			if(height>options.minHeight) {
-				genY++;
-			}
-			place();
-		}
-	}
-	
-}
-
-function Inventory() {
+function InventoryLoop() {
 	let currentTexture = playerInventory[playerItemWheel]?.[0] ?? playerItemWheel; // Current block that have been chosen
 	playerItem = textures[currentTexture]?.[0] ?? null;
 
 	let invSlots = document.querySelectorAll(".invSlot");
 	let invImageRaw = document.querySelectorAll(".invSlot img");
+	let invCountRaw = document.querySelectorAll(".invSlot span");
 
 	invSlots.forEach((slot, index) => {
-		let invImage = null
+		let invImage = null;
+		let invCount = null;
 		invImageRaw.forEach((img, indexi) => {
 			if(index === indexi) invImage = img;
 		})
-		
 
+		invCountRaw.forEach((span, indexi) => {
+			if(index === indexi) invCount = span;
+		})
+		
 		if(playerInventory[index][0] === -1) {
 			invImage.src = "image/empty.png";
 		} else {
 			invImage.src = textures[playerInventory[index][0]][1];
 		}
-		
+
+		if(playerInventory[index][1] > 1) {
+			invCount.innerText = playerInventory[index][1];
+			invCount.classList.remove("invisible");
+		} else {
+			invCount.classList.add("invisible");
+		}
 
 		slot.classList.remove("selected");
 		if(index == playerItemWheel) {
@@ -325,14 +272,23 @@ function Inventory() {
 		}
 	})
 }
-Inventory();
+InventoryLoop();
 
 addEventListener("keydown", (e) => {
 	keys[e.code] = true;
 
 	if(e.code.startsWith("Digit") && !e.code.endsWith("0")) {
 		playerItemWheel = parseInt(e.code.substring(5,6))-1;
-		Inventory();
+		InventoryLoop();
+	}
+	if(e.code === "KeyE") {
+		if(inventoryStatus) {
+			inventoryStatus = false;
+			inventoryMenu.style = "display: none;";
+		} else {
+			inventoryStatus = true;
+			inventoryMenu.style = "display: initial;";
+		}
 	}
 });
 
@@ -340,26 +296,62 @@ addEventListener("keyup", (e) => {
 	keys[e.code] = false;
 });
 
-canvas.addEventListener("mousedown", (e) => {
+mainContainer.addEventListener("mousedown", (e) => {
 	e.preventDefault();
 	if(e.button == 0) { // Left click(sphilip)
-		let blockX = Math.floor((e.clientX-tilemap.scrollX)/tilemap.gridWidth);
-		let blockY = Math.floor((e.clientY-tilemap.scrollY)/tilemap.gridHeight);
+		let blockX = Math.floor((e.offsetX-tilemap.scrollX)/tilemap.gridWidth);
+		let blockY = Math.floor((e.offsetY-tilemap.scrollY)/tilemap.gridHeight);
+
+		let blockType = getTypeFromBlockName(types, tilemap.grid[blockX]?.[blockY]?.type);
+		if(blockType?.bakedData?.unbreakable) return;
+
+		let blockID = getIDFromName(textures, tilemap.grid[blockX]?.[blockY]?.type);
+		let freeSlot = getFreeSlot(playerInventory, blockID);
+		
+		if(freeSlot && blockID) { // add item to inventory
+			if(!blockType?.bakedData?.nodrop) {
+				playerInventory[freeSlot][0] = blockID;
+				playerInventory[freeSlot][1]++;
+			}
+		}
+
+		InventoryLoop();
 
 		if(tilemap.grid[blockX]?.[blockY]) {
 			tilemap.grid[blockX][blockY] = 0;
 		}
+
 		socket.emit("client.break", blockX, blockY);
 	} else if(e.button == 2 || e.button == 1) { // Right click(sphilip)
-		let blockX = Math.floor((e.clientX-tilemap.scrollX)/tilemap.gridWidth);
-		let blockY = Math.floor((e.clientY-tilemap.scrollY)/tilemap.gridHeight);
+		let blockX = Math.floor((e.offsetX-tilemap.scrollX)/tilemap.gridWidth);
+		let blockY = Math.floor((e.offsetY-tilemap.scrollY)/tilemap.gridHeight);
 
 		if(tilemap.grid[blockX]?.[blockY] == undefined || tilemap.grid[blockX]?.[blockY] == 0) {
 			if(playerItem != null) {
 				tilemap.grid[blockX] ??= [];
 				tilemap.grid[blockX][blockY] = {type: playerItem};
+
+				let blockID = getIDFromName(textures, playerItem);
+				let removedSlot = getRemovedSlot(playerInventory, blockID);
+
+				if(removedSlot && blockID) {
+					playerInventory[removedSlot][0] = blockID;
+					playerInventory[removedSlot][1]--;
+				}
+				if(playerInventory[removedSlot][1] <= 0) {
+					playerInventory[removedSlot][0] = -1;
+					playerInventory[removedSlot][1] = 0;
+				}
+
+				InventoryLoop();
+
 				socket.emit("client.place", blockX, blockY, playerItem);
 			}
+		} else {
+			let block = tilemap.grid[blockX]?.[blockY]
+			let blocktype = types.find(texture => texture.name === block.type);
+			if(!blocktype) return;
+			if(blocktype.data.click) blocktype.data.click(tilemap, socket, blockX, blockY, block.data, playerInventory);
 		}
 		
 	}
@@ -375,31 +367,76 @@ socket.on("client.break", (x,y) => {
 
 socket.on("client.place", (x,y,block) => {	
 	if(!tilemap.grid[x]) tilemap.grid[x] = [];
-	tilemap.grid[x][y] = {type: block};
+	if(block === 0) tilemap.grid[x][y] = 0;
+	else tilemap.grid[x][y] = {type: block};
 });
 
-canvas.addEventListener("wheel", (e) => {
+mainContainer.addEventListener("wheel", (e) => {
 	if(e.wheelDelta > 0) { // UPPER WHEEL
 		if(playerItemWheel == 0) {
 			playerItemWheel = 9;
-			Inventory();
+			InventoryLoop();
 		}
 		if(playerItemWheel > 0) {
 			playerItemWheel--;
-			Inventory();
+			InventoryLoop();
 		}
 	} else {
 		if(playerItemWheel == 8) {
 			playerItemWheel = -1;
-			Inventory();
+			InventoryLoop();
 		}
 		if(playerItemWheel < 8) {
 			playerItemWheel++;
-			Inventory();
+			InventoryLoop();
 		}
 	}
 });
 
-canvas.addEventListener("contextmenu", (e) => {
+mainContainer.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
+});
+
+mainContainer.addEventListener("mousemove", (e) => {
+	if(mouseItem != "") {
+		mouseSlot.style.left = e.clientX + "px";
+		mouseSlot.style.top = e.clientY + "px";
+	}
+});
+
+inventoryMenu.addEventListener("click", (e) => {
+	let invSlots = document.querySelectorAll(".invSlot");
+	let invIndex;
+
+	invSlots.forEach((slot, index) => {
+		let bounding = slot.getBoundingClientRect();
+		if(e.clientX > bounding.x && e.clientX < bounding.x+40) {
+			if(e.clientY > bounding.y && e.clientY < bounding.y+40) {
+				invIndex = index;
+			}
+		}
+	})
+
+	if(!playerInventory[invIndex][0] < 0 || !playerInventory[invIndex][1] <= 0) {
+		if(mouseItem == "" && !compareInventoryWithMouse(textures, playerInventory[invIndex], mouseItem)) {
+			let blockName = getBlockNameFromID(textures, playerInventory[invIndex][0]);
+		
+			mouseItem = blockName.texture;
+			mouseItemCount = playerInventory[invIndex][1];
+			playerInventory[invIndex] = [-1, 0];
+		} else {
+			mouseItemCount += playerInventory[invIndex][1];
+			playerInventory[invIndex] = [-1, 0];
+		}
+	}
+	else if(playerInventory[invIndex][0] < 0 || playerInventory[invIndex][1] <= 0) {
+		if(mouseItem != "") {
+			let blockID = getIDFromTextureName(textures, mouseItem);
+			playerInventory[invIndex] = [blockID, mouseItemCount];
+			mouseItem = "";
+			mouseItemCount = 0;
+		}
+	}
+	
+	InventoryLoop();
 });

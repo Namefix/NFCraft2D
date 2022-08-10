@@ -1,0 +1,109 @@
+@font-face {
+    font-family: 'Minecraftia';
+    src: url('minecraftia.woff2') format('woff2'),
+        url('minecraftia.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+body {
+    margin: 0;
+}
+.blockSelect {
+    position: absolute;
+    top: 480px;
+    display: flex;
+    width: 640px;
+    height: 96px;
+    background-image: url("image/oakplanks.png");
+    align-items: center;
+    justify-content: center;
+}
+.blockSelect ul {
+    display: inherit;
+    padding-left: 0;
+}
+.blockSelect ul li {
+    list-style-type: none;
+}
+.invSlot {
+    display: flex;
+    background-image: url("image/inventory.png");
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    align-items: center;
+}
+.invSlot.selected {
+    background-image: url("image/selected.png");
+}
+.invSlot img {
+    width: 16px;
+    height: 16px;
+}
+.invSlot span {
+    color: white;
+    font-family: 'Minecraftia';
+    position: absolute;
+    margin-left: 16px;
+    margin-top: 20px;
+    font-size: 12px;
+    text-shadow: -0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px 0.5px 0 #000;
+}
+.invSlot span.invisible {
+    display: none;
+}
+.mainContainer {
+    position: relative;
+}
+#tilemap, .hud {
+    position: absolute;
+}
+.hud {
+    font-family: "Minecraftia";
+    width: 640px;
+    height: 480px;
+}
+
+.inventoryMenu {
+    left: 130px;
+    position: absolute;
+}
+
+.inventoryMenu ul {
+    display: grid;
+    padding-left: 0;
+}
+
+.inventoryMenu ul li {
+    list-style-type: none;
+}
+
+.inventoryMenu ul li:nth-child(-n+9) {
+    grid-row: 1;
+}
+
+.inventoryMenu ul li:nth-child(n+10):nth-child(-n+18) {
+    grid-row: 2;
+}
+
+.inventoryMenu ul li:nth-child(n+19):nth-child(-n+27) {
+    grid-row: 3;
+}
+
+.mouseSlot {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+}
+
+.mouseSlot.empty {
+    display: none;
+}
+
+
+

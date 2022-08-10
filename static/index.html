@@ -1,80 +1,173 @@
 <html>
     <head>
         <title>NFCraft 2D</title>
-        <script src="util.js"></script>
         <script src="blocks.js"></script>
         <script src="nftiles.js"></script>
-        <link rel="favicon" href="image/grassblock.png">
+        <link rel="icon" type="image/x-icon" href="image/grassblock.png">
         <script src="/socket.io/socket.io.js"></script>
-        <style>
-            body {
-                margin: 0;
-            }
-            .blockSelect {
-                display: flex;
-                width: 640px;
-                height: 96px;
-                background-image: url("image/oakplanks.png");
-                align-items: center;
-                justify-content: center;
-            }
-            .blockSelect ul {
-                display: inherit;
-                padding-left: 0;
-            }
-            .blockSelect ul li {
-                list-style-type: none;
-            }
-            .invSlot {
-                display: flex;
-                background-image: url("image/inventory.png");
-                width: 40px;
-                height: 40px;
-                justify-content: center;
-                align-items: center;
-            }
-            .invSlot.selected {
-                background-image: url("image/selected.png");
-            }
-            .invSlot img {
-                width: 16px;
-                height: 16px;
-            }
-        </style>
+        <link rel="stylesheet" href="index.css">
     </head>
     <body>
-        <canvas id="tileMap" width="640" height="480"></canvas>
+        <img class="mouseSlot">
         <div class="blockSelect">
-            <ul>
+            <ul id="hotbar">
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
                 <li><div class="invSlot">
                     <img src="image/empty.png">
+                    <span class="invisible">0</span>
                 </div></li>
             </ul>
         </div>
+        <div class="mainContainer">
+            <canvas id="tileMap" width="640" height="480"></canvas>
+            <div class="hud">
+                <span id="fpsCount" style="font-size: 12px;">0 FPS</span>
+                <div class="inventoryMenu" style="display: none;">
+                    <ul id="hudInventory">
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                        <li><div class="invSlot">
+                            <img src="image/empty.png">
+                    <span class="invisible">0</span>
+                        </div></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="util.js"></script>
         <script src="index.js"></script>
     </body>
 </html>
