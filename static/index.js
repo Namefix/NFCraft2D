@@ -1,5 +1,6 @@
 let canvas = document.querySelector("#tileMap");
 let ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 let keys = {};
 
 MAXIMUM_SLOT = 64;
